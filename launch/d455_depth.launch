@@ -1,0 +1,31 @@
+<launch>
+    <!-- ORB-SLAM3 -->
+    <node name="orb_slam3_rbgd" pkg="orb_slam3_ros_wrapper" type="orb_slam3_ros_wrapper_rgbd" output="screen">
+
+        <remap from="/camera/rgb/image_raw"                 to="/d400/color/image_raw"/>
+        <remap from="/camera/depth_registered/image_raw"    to="/d400/depth/image_rect_raw"/>
+        <!-- <remap from="/imu"                             to="/d400/imu"/> -->
+
+        <!-- Parameters for original ORB-SLAM3 -->
+        <param name="voc_file"      type="string"   value="$(find orb_slam3_ros_wrapper)/config/ORBvoc.txt" />
+        <param name="settings_file" type="string"   value="$(find orb_slam3_ros_wrapper)/config/Realsense_d455_depth.yaml" />
+
+        <!-- Parameters for ROS -->
+        <param name="world_frame_id"    type="string"   value="world" />
+        <param name="cam_frame_id"      type="string"   value="camera" />
+        <param name="enable_pangolin"   type="bool"     value="true" />
+
+        <param name="trajectory_file"            type="string"   value="/home/jakemclaughlin/results/full_trajectory.txt" />
+        <param name="keyframe_trajectory_file"   type="string"   value="/home/jakemclaughlin/results/keyframe_trajectory.txt" />
+    </node>
+
+    <!-- Visualization - RViz-->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros_wrapper)/config/orb_slam3_with_imu.rviz" output="screen" />
+
+    <node pkg="hector_trajectory_server" type="hector_trajectory_server" name="trajectory_server_orb_slam3" output="screen" ns="orb_slam3_ros" >
+        <param name="/target_frame_name" value="/world" />
+        <param name="/source_frame_name" value="/camera" />
+        <param name="/trajectory_update_rate" value="20.0" />
+        <param name="/trajectory_publish_rate" value="20.0" />
+    </node>
+</launch>

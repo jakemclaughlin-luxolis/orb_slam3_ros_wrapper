@@ -3,7 +3,7 @@ project(orb_slam3_ros_wrapper)
 
 # Change this to your installation of ORB-SLAM3. Default is ~/
 set(ORB_SLAM3_DIR
-   $ENV{HOME}/Packages/ORB_SLAM3
+   $ENV{HOME}/projects/ORB_SLAM3_LUX
 )
 
 set(CMAKE_BUILD_TYPE "Release")
@@ -19,7 +19,10 @@ find_package (catkin REQUIRED COMPONENTS
    tf
    sensor_msgs
    message_generation
+   realsense2_camera
 )
+
+find_package(nlohmann_json REQUIRED)
 
 find_package(OpenCV REQUIRED)
 MESSAGE("OPENCV VERSION:")
@@ -54,6 +57,7 @@ set(LIBS
    ${catkin_LIBRARIES}
    ${Pangolin_LIBRARIES}
    ${OpenCV_LIBS}
+   nlohmann_json::nlohmann_json
 )
 
 # mono node

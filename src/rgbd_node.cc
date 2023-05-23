@@ -1,21 +1,23 @@
 /**
-* 
-* Adapted from ORB-SLAM3: Examples/ROS/src/ros_rgbd.cc
-*
-*/
+ *
+ * Adapted from ORB-SLAM3: Examples/ROS/src/ros_rgbd.cc
+ *
+ */
 
 #include "common.h"
 
 using namespace std;
 
+std::string trajectory_file, keyframe_trajectory_file;
+
 class ImageGrabber
 {
 public:
-    ImageGrabber(ORB_SLAM3::System* pSLAM):mpSLAM(pSLAM){}
+    ImageGrabber(ORB_SLAM3::System *pSLAM) : mpSLAM(pSLAM) {}
 
-    void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD);
+    void GrabRGBD(const sensor_msgs::ImageConstPtr &msgRGB, const sensor_msgs::ImageConstPtr &msgD);
 
-    ORB_SLAM3::System* mpSLAM;
+    ORB_SLAM3::System *mpSLAM;
 };
 
 int main(int argc, char **argv)
@@ -24,7 +26,7 @@ int main(int argc, char **argv)
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
     if (argc > 1)
     {
-        ROS_WARN ("Arguments supplied via command line are ignored.");
+        ROS_WARN("Arguments supplied via command line are ignored.");
     }
 
     ros::NodeHandle node_handler;
@@ -35,9 +37,12 @@ int main(int argc, char **argv)
     node_handler.param<std::string>(node_name + "/voc_file", voc_file, "file_not_set");
     node_handler.param<std::string>(node_name + "/settings_file", settings_file, "file_not_set");
 
+    node_handler.param<std::string>(node_name + "/trajectory_file", trajectory_file, "file_not_set");
+    node_handler.param<std::string>(node_name + "/keyframe_trajectory_file", keyframe_trajectory_file, "file_not_set");
+
     if (voc_file == "file_not_set" || settings_file == "file_not_set")
     {
-        ROS_ERROR("Please provide voc_file and settings_file in the launch file");       
+        ROS_ERROR("Please provide voc_file and settings_file in the launch file");
         ros::shutdown();
         return 1;
     }
@@ -58,21 +63,22 @@ int main(int argc, char **argv)
     message_filters::Subscriber<sensor_msgs::Image> depth_sub(node_handler, "/camera/depth_registered/image_raw", 100);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
-    sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
+    sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD, &igb, _1, _2));
 
     setup_ros_publishers(node_handler, image_transport);
 
     ros::spin();
 
     // Stop all threads
+    SLAM.SaveTrajectoryTUM(trajectory_file);
+    SLAM.SaveKeyFrameTrajectoryTUM(keyframe_trajectory_file);
     SLAM.Shutdown();
-
     ros::shutdown();
 
     return 0;
 }
 
-void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD)
+void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr &msgRGB, const sensor_msgs::ImageConstPtr &msgD)
 {
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrRGB;
@@ -80,7 +86,7 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     {
         cv_ptrRGB = cv_bridge::toCvShare(msgRGB);
     }
-    catch (cv_bridge::Exception& e)
+    catch (cv_bridge::Exception &e)
     {
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
@@ -91,12 +97,12 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     {
         cv_ptrD = cv_bridge::toCvShare(msgD);
     }
-    catch (cv_bridge::Exception& e)
+    catch (cv_bridge::Exception &e)
     {
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
-    
+
     // ORB-SLAM3 runs in TrackRGBD()
     Sophus::SE3f Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
     Sophus::SE3f Twc = Tcw.inverse();
